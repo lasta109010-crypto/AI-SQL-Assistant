@@ -19,6 +19,20 @@ cursor = connection.cursor()
 # Streamlit User Interface
 # ============================
 st.tItle = ("AI SQL Assistant")
+
+st.markdown("""
+### 💡 Example Questions
+
+- Show all customers
+- Show all products
+- Which customer spent the most money?
+- Which country placed the most orders?
+- Which product generated the most revenue?
+- Show the total amount each customer has spent.
+""")
+
+
+
 question = st.text_input("Ask a question about the online store databases")
 
 # ============================
