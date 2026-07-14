@@ -19,7 +19,7 @@ cursor = connection.cursor()
 # Streamlit User Interface
 # ============================
 st.tItle = ("AI SQL Assistant")
-
+st.title("🤖 AI SQL Assistant")
 st.markdown("""
 ### 💡 Example Questions
 
