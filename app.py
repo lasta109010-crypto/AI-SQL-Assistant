@@ -108,7 +108,7 @@ if st.button("Generate SQL"):
             results = cursor.fetchall()
 
             if results:
-                df = pd.DataFrame(results, columns=...)
+                df = pd.DataFrame(results, columns=[column[0] for column in cursor.description])
                 st.dataframe(df)
             else:
                  st.warning("No records found.")
