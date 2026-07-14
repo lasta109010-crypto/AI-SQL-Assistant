@@ -7,138 +7,230 @@ from openai import OpenAI
 import pandas as pd
 
 
-
-client = OpenAI()
 # ============================
 # Database Connection
 # ============================
-connection = sqlite3.connect("online_store.db")
+client = OpenAI()
+
+connection = sqlite3.connect("statistics_canada.db")
 cursor = connection.cursor()
 
-# ============================
-# Streamlit User Interface
-# ============================
-st.tItle = ("AI SQL Assistant")
-st.title("🤖 AI SQL Assistant")
+# 
+# ==========================================
+# THE TITLE
+# ==========================================
+st.title("CA AI Statistics Canada Data Explorer")
+st.caption(
+    "Ask questions in plain English and explore Canadian public statistics using AI-generated SQL."
+)
 st.markdown("""
-### 💡 Example Questions
+### Explore Canadian Statistics
 
-- Show all customers
-- Show all products
-- Which customer spent the most money?
-- Which country placed the most orders?
-- Which product generated the most revenue?
-- Show the total amount each customer has spent.
+#### Demographics
+- Population
+- Immigration
+- Life Expectancy
+
+#### Economy
+- Income
+- Wages
+- Employment and Unemployment
+- GDP
+
+#### Housing and Cost
+- Housing
+- Consumer Spending
+- Poverty
+
+#### Society
+- Healthcare
+- Education
+- Crime and Public Safety
 """)
 
+# ==========================================
+# AI Instructions
+# ==========================================
+instructions = """
+You are an SQLite expert.
+
+Convert the user's question into valid SQLite SQL.
+
+Return ONLY the SQL query.
+
+Database Schema:
+Relationships:
+All statistics tables are related using:
+- province
+- year
+
+When a question requires data from multiple tables, join them using BOTH columns.
+
+Example:
+population.province = income.province
+AND population.year = income.year
+
+Table: population
+Columns:
+- id
+- province
+- year
+- population
+
+Table: income
+Columns:
+- id
+- province
+- year
+- median_income
+
+Table: housing
+Columns:
+- id
+- province
+- year
+- average_house_price
+
+Table: employment
+Columns:
+- id
+- province
+- year
+- employment_rate
+- unemployment_rate
+
+Table: healthcare
+Columns:
+- id
+- province
+- year
+- physicians_per_1000
+- healthcare_spending
+
+Table: immigration
+Columns:
+- id
+- province
+- year
+- immigrants
+
+Table: life_expectancy
+Columns:
+- id
+- province
+- year
+- life_expectancy
+
+Table: education
+Columns:
+- id
+- province
+- year
+- university_graduation_rate
+
+Table: gdp
+Columns:
+- id
+- province
+- year
+- gdp_billions
+
+Table: crime
+Columns:
+- id
+- province
+- year
+- crime_rate
+
+Table: wages
+Columns:
+- id
+- province
+- year
+- average_hourly_wage
+
+Table: poverty
+Columns:
+- id
+- province
+- year
+- poverty_rate
+
+Table: consumer_spending
+Columns:
+- id
+- province
+- year
+- average_annual_spending
+
+"""
 
 
-question = st.text_input("Ask a question about the online store databases")
-
-# ============================
-# AI Prompt
-# ============================
-if st.button("Generate SQL"):
-    instructions = """
-    You are an expert SQLite assistant.
-    Your task is to convert the user's English question into a valid SQLite query.
-    
-    Database schema:
-    Relationships:
-
-    orders.customer_id = customers.customer_id
-    order_items.order_id = orders.order_id
-    order_items.product_id = products.product_id
-
-    Table: customers
-
-    Columns:
-    - customer_id
-    - customer_name
-    - country
-    - email
-
-    Table: products
-    - product_id
-    - product_name
-    - price
 
 
-    Table: orders
-    - order_id
-    - customer_id
-    - order_date
 
-    Table: order_items
-    - order_item_id
-    - order_id
-    - product_id
-    - quantity
+# ==========================================
+# OpenAI API
+# ==========================================
 
+question = st.text_input("Ask a question about Canadian statistics")
 
-    Rules:
+if st.button("🔍 Analyze Data"):
 
-    - Return ONLY the SQL query.
-    - Do NOT use markdown.
-    - Do NOT use ```sql or ``` code fences.
-    - Do NOT include explanations.
-    - Do NOT include comments.
-    - The output must be executable SQLite code.
-
-    """
-
-# ============================
-# Generate SQL with OpenAI
-# ============================
-
-    st.write(question)
-
-    with st.spinner("Generating SQL..."):
+    with st.spinner("Analyzing Canadian statistics..."):
 
         response = client.responses.create(
-
-            model = "gpt-4.1-mini",
+            model="gpt-4.1-mini",
             input=f"""
-            {instructions}
+{instructions}
 
-            User Question:
-            {question}
-            """
-    )
+User Question:
+{question}
+"""
+        )
+
+        sql_query = response.output_text.strip()
+        sql_query = sql_query.replace("```sql", "")
+        sql_query = sql_query.replace("```", "")
+        sql_query = sql_query.strip()
+
         
-# ============================
-# Execute SQL
-# ============================
 
-    sql_query = response.output_text.strip()
-    st.subheader("Generated SQL")
-    st.code(sql_query,language="sql")
-    try:
+        
 
-        if sql_query.upper().startswith("SELECT"):
-            cursor.execute(sql_query)
+        
+        st.subheader("Generated SQL")
+        st.code(sql_query, language="sql")
 
-            
-            results = cursor.fetchall()
+        # ==========================================
+        # Execute SQL
+        # ==========================================
 
-            if results:
-                df = pd.DataFrame(results, columns=[column[0] for column in cursor.description])
-                st.dataframe(df)
+        try:
+
+            if sql_query.upper().startswith("SELECT"):
+
+                cursor.execute(sql_query)
+
+                results = cursor.fetchall()
+
+                if results:
+
+                    df = pd.DataFrame(
+                        results,
+                        columns=[column[0] for column in cursor.description]
+                    )
+
+                    st.dataframe(df)
+
+                else:
+
+                    st.warning("No records found.")
+
             else:
-                 st.warning("No records found.")
 
+                st.error("Only SELECT queries are allowed.")
 
-    
+        except Exception as e:
 
-
-            
-          
-
-        else:
-
-            cursor.execute(sql_query)
-            connection.commit()
-            st.success("Query executed succesfully")
-    except Exception as e:
-
-        st.error(f"Could not run the query: {e}")
+            st.error(f"Could not run the query: {e}")
