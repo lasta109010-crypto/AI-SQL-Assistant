@@ -1,5 +1,4 @@
-# 🤖 AI SQL Assistant
-
+# 🤖 🇨🇦 AI Canadian Statistics Explorer
 AI-powered SQL assistant that converts natural language into SQLite queries using Python, OpenAI API, and Streamlit.
 
 ## Features
